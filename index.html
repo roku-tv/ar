@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reel Player - Roku</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #0a0a1a; 
+            color: white; 
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: #12122a;
+            border-radius: 24px;
+            padding: 24px;
+        }
+        h1 { 
+            text-align: center; 
+            background: linear-gradient(135deg, #1877f2, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 14px;
+            border-radius: 50px;
+            border: 2px solid #2a2a4a;
+            background: #1a1a3a;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
+        .search-box input:focus { border-color: #1877f2; }
+        .search-box button {
+            padding: 14px 24px;
+            border-radius: 50px;
+            border: none;
+            background: #1877f2;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .player {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 9/16;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .player iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .timer {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1877f2;
+            margin: 10px 0;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .controls button {
+            background: #2a2a4a;
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .controls button:hover { background: #1877f2; }
+        .video-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .video-item {
+            background: #1a1a3a;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        .video-item:hover { background: #2a2a5a; }
+        .video-item.active { border: 2px solid #1877f2; }
+        .video-item .title { font-size: 14px; }
+        .video-item .dur { color: #888; font-size: 12px; }
+        .status { text-align: center; color: #888; font-size: 13px; margin-top: 10px; min-height: 20px; }
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #2a2a4a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1877f2, #00d4ff);
+            width: 0%;
+            transition: width 1s;
+        }
+        .placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #555;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎬 REEL PLAYER</h1>
+    
+    <div class="search-box">
+        <input type="text" id="search" placeholder="Buscar..." value="comedia">
+        <button onclick="buscar()">🔍</button>
+    </div>
+    
+    <div class="timer" id="timer">⏱️ 00:00 / 90:00</div>
+    
+    <div class="player" id="playerWrapper">
+        <div class="placeholder" id="placeholder">
+            <div>📺</div>
+            <div>Busca un video</div>
+        </div>
+        <iframe id="player" style="display:none;" allowfullscreen></iframe>
+    </div>
+    
+    <div class="progress"><div class="fill" id="progress"></div></div>
+    
+    <div class="controls">
+        <button onclick="anterior()">⏮</button>
+        <button onclick="togglePlay()" id="playBtn">⏸</button>
+        <button onclick="siguiente()">⏭</button>
+        <button onclick="toggleShuffle()" id="shuffleBtn">🔀</button>
+    </div>
+    
+    <div class="video-list" id="list"></div>
+    <div class="status" id="status">Listo para reproducir</div>
+</div>
+
+<script>
+// ============== CONFIGURACIÓN ==============
+const MAX_TIME = 5400; // 90 minutos
+
+// ============== VIDEOS DE DEMO ==============
+const DEMO = [
+    {title:'🐱 Gatos divertidos', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:30},
+    {title:'🍳 Receta rápida', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:45},
+    {title:'😂 Memes 2024', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:25},
+    {title:'🌅 Atardecer', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:35},
+    {title:'🏄 Deportes', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:40},
+    {title:'🎮 Gameplay', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:50},
+];
+
+// ============== ESTADO ==============
+let videos = [];
+let actual = 0;
+let segundos = 0;
+let reproduciendo = true;
+let timer = null;
+let aleatorio = false;
+
+// ============== DOM ==============
+const player = document.getElementById('player');
+const placeholder = document.getElementById('placeholder');
+const listEl = document.getElementById('list');
+const timerEl = document.getElementById('timer');
+const progress = document.getElementById('progress');
+const statusEl = document.getElementById('status');
+const playBtn = document.getElementById('playBtn');
+
+// ============== FUNCIONES ==============
+
+function buscar() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    statusEl.textContent = '🔍 Buscando...';
+    
+    videos = DEMO.filter(v => v.title.toLowerCase().includes(q));
+    if (videos.length === 0) {
+        videos = DEMO;
+        statusEl.textContent = '⚠️ No hay resultados, mostrando todos';
+    } else {
+        statusEl.textContent = `✅ ${videos.length} encontrados`;
+    }
+    
+    actual = 0;
+    renderList();
+    reproducir(actual);
+}
+
+function renderList() {
+    listEl.innerHTML = videos.map((v, i) => `
+        <div class="video-item ${i === actual ? 'active' : ''}" onclick="reproducir(${i})">
+            <span class="title">${v.title}</span>
+            <span class="dur">${v.dur}s</span>
+        </div>
+    `).join('');
+}
+
+function reproducir(index) {
+    if (!videos.length) return;
+    actual = index;
+    const v = videos[actual];
+    
+    player.style.display = 'block';
+    placeholder.style.display = 'none';
+    player.src = v.url;
+    
+    renderList();
+    reiniciarTimer();
+    iniciarTimer();
+    statusEl.textContent = `▶️ ${v.title}`;
+}
+
+function siguiente() {
+    if (!videos.length) return;
+    if (aleatorio) {
+        actual = Math.floor(Math.random() * videos.length);
+    } else {
+        actual = (actual + 1) % videos.length;
+    }
+    reproducir(actual);
+}
+
+function anterior() {
+    if (!videos.length) return;
+    if (aleatorio) {
+        actual = Math.floor(Math.random() * videos.length);
+    } else {
+        actual = (actual - 1 + videos.length) % videos.length;
+    }
+    reproducir(actual);
+}
+
+function togglePlay() {
+    reproduciendo = !reproduciendo;
+    playBtn.textContent = reproduciendo ? '⏸' : '▶️';
+    if (reproduciendo) {
+        iniciarTimer();
+    } else {
+        clearInterval(timer);
+    }
+}
+
+function toggleShuffle() {
+    aleatorio = !aleatorio;
+    document.getElementById('shuffleBtn').style.background = aleatorio ? '#1877f2' : '#2a2a4a';
+    statusEl.textContent = aleatorio ? '🔀 Aleatorio ON' : '➡️ Secuencial';
+    setTimeout(() => { statusEl.textContent = ''; }, 1500);
+}
+
+// ============== TIMER ==============
+
+function reiniciarTimer() {
+    clearInterval(timer);
+    segundos = 0;
+    actualizarTimer();
+    progress.style.width = '0%';
+}
+
+function iniciarTimer() {
+    clearInterval(timer);
+    if (!reproduciendo) return;
+    
+    timer = setInterval(() => {
+        segundos++;
+        actualizarTimer();
+        
+        const pct = (segundos / MAX_TIME) * 100;
+        progress.style.width = Math.min(pct, 100) + '%';
+        
+        if (segundos >= MAX_TIME) {
+            clearInterval(timer);
+            statusEl.textContent = '⏰ ¡90 minutos! Siguiente...';
+            setTimeout(() => siguiente(), 2000);
+        }
+    }, 1000);
+}
+
+function actualizarTimer() {
+    const m = String(Math.floor(segundos / 60)).padStart(2, '0');
+    const s = String(segundos % 60).padStart(2, '0');
+    timerEl.textContent = `⏱️ ${m}:${s} / 90:00`;
+}
+
+// ============== INICIALIZAR ==============
+buscar();
+</script>
+</body>
+</html>
