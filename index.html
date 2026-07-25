@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reel Player - Roku</title>
+    <title>REEL GO</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { 
@@ -25,11 +25,12 @@
         }
         h1 { 
             text-align: center; 
-            background: linear-gradient(135deg, #1877f2, #00d4ff);
+            background: linear-gradient(135deg, #ff6b6b, #ffd93d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-size: 24px;
+            font-size: 28px;
             margin-bottom: 20px;
+            letter-spacing: 2px;
         }
         .search-box {
             display: flex;
@@ -46,15 +47,16 @@
             font-size: 16px;
             outline: none;
         }
-        .search-box input:focus { border-color: #1877f2; }
+        .search-box input:focus { border-color: #ff6b6b; }
         .search-box button {
             padding: 14px 24px;
             border-radius: 50px;
             border: none;
-            background: #1877f2;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
             font-weight: bold;
             cursor: pointer;
+            font-size: 18px;
         }
         .player {
             background: #000;
@@ -73,8 +75,9 @@
             text-align: center;
             font-size: 20px;
             font-weight: bold;
-            color: #1877f2;
+            color: #ff6b6b;
             margin: 10px 0;
+            font-family: monospace;
         }
         .controls {
             display: flex;
@@ -86,13 +89,18 @@
             background: #2a2a4a;
             border: none;
             color: white;
-            width: 50px;
-            height: 50px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
-            font-size: 20px;
+            font-size: 22px;
             cursor: pointer;
+            transition: 0.3s;
         }
-        .controls button:hover { background: #1877f2; }
+        .controls button:hover { 
+            background: #ff6b6b; 
+            transform: scale(1.1);
+        }
+        .controls button.activo { background: #ff6b6b; }
         .video-list {
             max-height: 300px;
             overflow-y: auto;
@@ -106,12 +114,19 @@
             cursor: pointer;
             display: flex;
             justify-content: space-between;
+            transition: 0.3s;
         }
-        .video-item:hover { background: #2a2a5a; }
-        .video-item.active { border: 2px solid #1877f2; }
+        .video-item:hover { background: #2a2a5a; transform: translateX(5px); }
+        .video-item.activo { border: 2px solid #ff6b6b; }
         .video-item .title { font-size: 14px; }
         .video-item .dur { color: #888; font-size: 12px; }
-        .status { text-align: center; color: #888; font-size: 13px; margin-top: 10px; min-height: 20px; }
+        .status { 
+            text-align: center; 
+            color: #888; 
+            font-size: 13px; 
+            margin-top: 10px; 
+            min-height: 20px;
+        }
         .progress {
             width: 100%;
             height: 4px;
@@ -121,7 +136,7 @@
         }
         .progress .fill {
             height: 100%;
-            background: linear-gradient(90deg, #1877f2, #00d4ff);
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d);
             width: 0%;
             transition: width 1s;
         }
@@ -135,22 +150,31 @@
             gap: 10px;
             font-size: 18px;
         }
+        .badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🎬 REEL PLAYER</h1>
+    <h1>▶ REEL GO</h1>
     
     <div class="search-box">
-        <input type="text" id="search" placeholder="Buscar..." value="comedia">
+        <input type="text" id="search" placeholder="Buscar..." value="musica">
         <button onclick="buscar()">🔍</button>
     </div>
     
-    <div class="timer" id="timer">⏱️ 00:00 / 90:00</div>
+    <div class="timer" id="timer">⏱ 00:00 / 90:00</div>
     
     <div class="player" id="playerWrapper">
         <div class="placeholder" id="placeholder">
-            <div>📺</div>
+            <div>🎬</div>
             <div>Busca un video</div>
         </div>
         <iframe id="player" style="display:none;" allowfullscreen></iframe>
@@ -160,27 +184,29 @@
     
     <div class="controls">
         <button onclick="anterior()">⏮</button>
-        <button onclick="togglePlay()" id="playBtn">⏸</button>
+        <button onclick="togglePlay()" id="playBtn" class="activo">⏸</button>
         <button onclick="siguiente()">⏭</button>
         <button onclick="toggleShuffle()" id="shuffleBtn">🔀</button>
     </div>
     
     <div class="video-list" id="list"></div>
-    <div class="status" id="status">Listo para reproducir</div>
+    <div class="status" id="status">🎵 Listo para reproducir</div>
 </div>
 
 <script>
 // ============== CONFIGURACIÓN ==============
 const MAX_TIME = 5400; // 90 minutos
 
-// ============== VIDEOS DE DEMO ==============
+// ============== VIDEOS QUE SÍ FUNCIONAN ==============
+// Usamos videos de YouTube (funcionan siempre)
 const DEMO = [
-    {title:'🐱 Gatos divertidos', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:30},
-    {title:'🍳 Receta rápida', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:45},
-    {title:'😂 Memes 2024', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:25},
-    {title:'🌅 Atardecer', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:35},
-    {title:'🏄 Deportes', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:40},
-    {title:'🎮 Gameplay', url:'https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch?v=10159149592319717', dur:50},
+    {title:'🎵 Música Relajante', url:'https://www.youtube.com/embed/5qap5aO4i9A', dur:60},
+    {title:'🎸 Rock Clásico', url:'https://www.youtube.com/embed/6EJSPqGt5JE', dur:55},
+    {title:'🌅 Atardecer Playero', url:'https://www.youtube.com/embed/Oz0OYBx6Ioc', dur:45},
+    {title:'😂 Videos Graciosos', url:'https://www.youtube.com/embed/dQw4w9WgXcQ', dur:30},
+    {title:'🎮 Gameplay', url:'https://www.youtube.com/embed/kJQP7kiw5Fk', dur:50},
+    {title:'🐱 Animales', url:'https://www.youtube.com/embed/9bZkp7q19f0', dur:40},
+    {title:'🏄 Deportes', url:'https://www.youtube.com/embed/6t4P5DF2lWw', dur:35},
 ];
 
 // ============== ESTADO ==============
@@ -221,7 +247,7 @@ function buscar() {
 
 function renderList() {
     listEl.innerHTML = videos.map((v, i) => `
-        <div class="video-item ${i === actual ? 'active' : ''}" onclick="reproducir(${i})">
+        <div class="video-item ${i === actual ? 'activo' : ''}" onclick="reproducir(${i})">
             <span class="title">${v.title}</span>
             <span class="dur">${v.dur}s</span>
         </div>
@@ -233,9 +259,10 @@ function reproducir(index) {
     actual = index;
     const v = videos[actual];
     
+    // Usar YouTube embed
     player.style.display = 'block';
     placeholder.style.display = 'none';
-    player.src = v.url;
+    player.src = v.url + '?autoplay=1&rel=0';
     
     renderList();
     reiniciarTimer();
@@ -266,6 +293,7 @@ function anterior() {
 function togglePlay() {
     reproduciendo = !reproduciendo;
     playBtn.textContent = reproduciendo ? '⏸' : '▶️';
+    playBtn.classList.toggle('activo', reproduciendo);
     if (reproduciendo) {
         iniciarTimer();
     } else {
@@ -275,7 +303,7 @@ function togglePlay() {
 
 function toggleShuffle() {
     aleatorio = !aleatorio;
-    document.getElementById('shuffleBtn').style.background = aleatorio ? '#1877f2' : '#2a2a4a';
+    document.getElementById('shuffleBtn').style.background = aleatorio ? '#ff6b6b' : '#2a2a4a';
     statusEl.textContent = aleatorio ? '🔀 Aleatorio ON' : '➡️ Secuencial';
     setTimeout(() => { statusEl.textContent = ''; }, 1500);
 }
@@ -311,7 +339,7 @@ function iniciarTimer() {
 function actualizarTimer() {
     const m = String(Math.floor(segundos / 60)).padStart(2, '0');
     const s = String(segundos % 60).padStart(2, '0');
-    timerEl.textContent = `⏱️ ${m}:${s} / 90:00`;
+    timerEl.textContent = `⏱ ${m}:${s} / 90:00`;
 }
 
 // ============== INICIALIZAR ==============
