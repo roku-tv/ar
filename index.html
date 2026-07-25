@@ -28,7 +28,7 @@
             background: linear-gradient(135deg, #ff6b6b, #ffd93d);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-size: 28px;
+            font-size: 32px;
             margin-bottom: 20px;
             letter-spacing: 2px;
         }
@@ -149,7 +149,9 @@
             flex-direction: column;
             gap: 10px;
             font-size: 18px;
+            background: #0a0a1a;
         }
+        .placeholder .icon { font-size: 48px; }
         .badge {
             display: inline-block;
             background: #ff6b6b;
@@ -174,7 +176,7 @@
     
     <div class="player" id="playerWrapper">
         <div class="placeholder" id="placeholder">
-            <div>🎬</div>
+            <div class="icon">🎬</div>
             <div>Busca un video</div>
         </div>
         <iframe id="player" style="display:none;" allowfullscreen></iframe>
@@ -197,16 +199,14 @@
 // ============== CONFIGURACIÓN ==============
 const MAX_TIME = 5400; // 90 minutos
 
-// ============== VIDEOS QUE SÍ FUNCIONAN ==============
-// Usamos videos de YouTube (funcionan siempre)
+// ============== VIDEOS DE YOUTUBE (los que te gustaban) ==============
 const DEMO = [
-    {title:'🎵 Música Relajante', url:'https://www.youtube.com/embed/5qap5aO4i9A', dur:60},
-    {title:'🎸 Rock Clásico', url:'https://www.youtube.com/embed/6EJSPqGt5JE', dur:55},
-    {title:'🌅 Atardecer Playero', url:'https://www.youtube.com/embed/Oz0OYBx6Ioc', dur:45},
-    {title:'😂 Videos Graciosos', url:'https://www.youtube.com/embed/dQw4w9WgXcQ', dur:30},
-    {title:'🎮 Gameplay', url:'https://www.youtube.com/embed/kJQP7kiw5Fk', dur:50},
-    {title:'🐱 Animales', url:'https://www.youtube.com/embed/9bZkp7q19f0', dur:40},
-    {title:'🏄 Deportes', url:'https://www.youtube.com/embed/6t4P5DF2lWw', dur:35},
+    {title:'🐱 Animales Divertidos', url:'https://www.youtube.com/embed/9bZkp7q19f0', dur:60},
+    {title:'🎮 Gameplay', url:'https://www.youtube.com/embed/kJQP7kiw5Fk', dur:55},
+    {title:'😂 Videos Graciosos', url:'https://www.youtube.com/embed/dQw4w9WgXcQ', dur:45},
+    {title:'🎵 Música Relajante', url:'https://www.youtube.com/embed/5qap5aO4i9A', dur:50},
+    {title:'🌅 Atardecer Playero', url:'https://www.youtube.com/embed/Oz0OYBx6Ioc', dur:40},
+    {title:'🏄 Deportes Extremos', url:'https://www.youtube.com/embed/6t4P5DF2lWw', dur:35},
 ];
 
 // ============== ESTADO ==============
@@ -259,10 +259,10 @@ function reproducir(index) {
     actual = index;
     const v = videos[actual];
     
-    // Usar YouTube embed
+    // 🔧 ARREGLO: usar enablejsapi=1 para mejor compatibilidad
     player.style.display = 'block';
     placeholder.style.display = 'none';
-    player.src = v.url + '?autoplay=1&rel=0';
+    player.src = v.url + '?autoplay=1&rel=0&enablejsapi=1';
     
     renderList();
     reiniciarTimer();
@@ -291,13 +291,20 @@ function anterior() {
 }
 
 function togglePlay() {
+    // Con iframe no podemos pausar directamente, 
+    // pero podemos recargar o cambiar el estado visual
     reproduciendo = !reproduciendo;
     playBtn.textContent = reproduciendo ? '⏸' : '▶️';
     playBtn.classList.toggle('activo', reproduciendo);
+    
     if (reproduciendo) {
+        // Recargar el iframe para "reproducir"
+        const src = player.src;
+        player.src = src;
         iniciarTimer();
     } else {
         clearInterval(timer);
+        // No podemos pausar YouTube, pero podemos detener el timer
     }
 }
 
